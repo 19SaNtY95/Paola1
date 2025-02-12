@@ -1,0 +1,169 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import Image from "next/image"
+import { Heart } from "lucide-react"
+
+const HEART_COLORS = [
+  "#FF0000",
+  "#FF69B4",
+  "#FF1493",
+  "#FF4D4D",
+  "#FF007F",
+  "#FF77FF",
+  "#FF00FF",
+  "#FF355E",
+  "#FF00CC",
+  "#FF66B2",
+  "#FFA07A",
+  "#FF6347",
+  "#FF4500",
+  "#FFD700",
+  "#FFA500",
+]
+
+interface HeartProps {
+  id: number
+  left: number
+  top: number
+  animationDuration: number
+  color: string
+  size: number
+}
+
+export default function ValentineProposal() {
+  const [yesPressed, setYesPressed] = useState(false)
+  const [noPosition, setNoPosition] = useState({ x: 0, y: 0 })
+  const [hearts, setHearts] = useState<HeartProps[]>([])
+  const [explosionHearts, setExplosionHearts] = useState<HeartProps[]>([])
+
+  const createHeart = useCallback(
+    (id: number) => ({
+      id,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      animationDuration: Math.random() * 5 + 5,
+      color: HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)],
+      size: Math.random() * 30 + 10,
+    }),
+    [],
+  )
+
+  useEffect(() => {
+    const createHearts = () => {
+      const newHearts = Array.from({ length: 150 }, (_, i) => createHeart(i))
+      setHearts(newHearts)
+    }
+
+    createHearts()
+    const interval = setInterval(createHearts, 10000)
+
+    return () => clearInterval(interval)
+  }, [createHeart])
+
+  useEffect(() => {
+    const moveNoButton = (e: MouseEvent) => {
+      const noButton = document.getElementById("noButton")
+      if (noButton) {
+        const rect = noButton.getBoundingClientRect()
+        const centerX = rect.left + rect.width / 2
+        const centerY = rect.top + rect.height / 2
+        const distance = Math.sqrt(Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2))
+
+        if (distance < 100) {
+          setNoPosition({
+            x: Math.random() * (window.innerWidth - rect.width),
+            y: Math.random() * (window.innerHeight - rect.height),
+          })
+        }
+      }
+    }
+
+    document.addEventListener("mousemove", moveNoButton)
+    return () => document.removeEventListener("mousemove", moveNoButton)
+  }, [])
+
+  const handleYesClick = () => {
+    if (!yesPressed) {
+      setYesPressed(true)
+      setTimeout(() => {
+        const newExplosionHearts = Array.from({ length: 50 }, (_, i) => createHeart(i + 1000))
+        setExplosionHearts(newExplosionHearts)
+        setTimeout(() => {
+          setYesPressed(false)
+          setExplosionHearts([])
+          alert("¡Qué felicidad! ¡Seremos valentines, mi bizcochito! ❤️")
+        }, 2000)
+      }, 1000)
+    }
+  }
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-pink-100 to-red-100">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="text-center mb-8 bg-white/80 p-6 rounded-xl backdrop-blur-sm shadow-lg">
+          <Image
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202025-02-11%20at%2019.08.12-mO0kaF1VeShRU9WVrU49eVNvymIhkZ.jpeg"
+            alt="Nuestra foto juntos"
+            width={300}
+            height={300}
+            className="mx-auto rounded-lg shadow-lg mb-8"
+            unoptimized
+          />
+          <h1 className="text-4xl font-bold mb-6 text-pink-600">¿Quieres ser mi valentín, mi bizcochito?</h1>
+        </div>
+
+        <div className="relative">
+          <button
+            onClick={handleYesClick}
+            className={`bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full transition-all duration-200 ease-in-out flex items-center shadow-lg ${yesPressed ? "scale-90" : ""}`}
+            disabled={yesPressed}
+          >
+            Sí <Heart className="ml-2" fill="white" />
+          </button>
+          <button
+            id="noButton"
+            className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full transition-all duration-200 ease-in-out shadow-lg absolute"
+            style={{ left: `${noPosition.x}px`, top: `${noPosition.y}px` }}
+          >
+            No
+          </button>
+        </div>
+      </div>
+
+      {/* Corazones de fondo */}
+      {hearts.map((heart) => (
+        <div
+          key={heart.id}
+          className="fixed animate-float"
+          style={{
+            left: `${heart.left}%`,
+            top: `${heart.top}%`,
+            animationDuration: `${heart.animationDuration}s`,
+          }}
+        >
+          <Heart fill={heart.color} stroke={heart.color} size={heart.size} className="animate-pulse" />
+        </div>
+      ))}
+
+      {/* Corazones de explosión */}
+      {explosionHearts.map((heart) => (
+        <div
+          key={heart.id}
+          className="fixed animate-explosion"
+          style={
+            {
+              left: "50%",
+              top: "50%",
+              "--heart-color": heart.color,
+              "--heart-size": `${heart.size}px`,
+            } as React.CSSProperties
+          }
+        >
+          <Heart fill={heart.color} stroke={heart.color} size={heart.size} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
